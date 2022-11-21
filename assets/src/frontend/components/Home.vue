@@ -781,10 +781,16 @@ export default {
 
             this.$store.dispatch( 'Order/setCanProcessPaymentAction', canProcess );
         },
-        processPayment(e) {
+        async processPayment(e) {
             if ( ! this.$store.getters['Order/getCanProcessPayment'] ) {
                 return;
             }
+
+            if ( 'wepos_stripe_terminal' === this.orderdata.payment_method ) {
+                const cartTotal = this.$store.getters['Cart/getTotal']
+                wepos.hooks.doAction( 'wepos_stripe_terminal_pay', cartTotal );
+            }
+
             var self = this,
                 gateway = weLo_.find( this.availableGateways, { 'id' : this.orderdata.payment_method } ),
                 orderdata = wepos.hooks.applyFilters( 'wepos_order_form_data', {
