@@ -610,6 +610,7 @@ export default {
                 },
             } ),
             feeData: {},
+            orderId: 0,
             orderKey: '',
             createprintreceipt: false,
             selectedCategory: '',
@@ -628,7 +629,7 @@ export default {
             'cartdata'
         ] ),
         ...mapGetters( 'Order', [
-            'orderdata', 'paymentProcessed'
+            'orderdata', 'paymentProcessed', 'stripeTerminalPaymentId'
         ] ),
         hotkeys() {
             return {
@@ -793,14 +794,16 @@ export default {
 
             let updatedOrderData = this.updateOrderData();
             let $contentWrap     = jQuery('.wepos-checkout-wrapper');
-            
+
             $contentWrap.block( { message: null, overlayCSS: { background: '#fff url(' + wepos.ajax_loader + ') no-repeat center', opacity: 0.4 } } );
 
             let newOrder;
             try {
-                newOrder = await this.placeOrder( updatedOrderData );
-                this.preparePrintData( newOrder, updatedOrderData );
+                newOrder      = await this.placeOrder( updatedOrderData );
+                this.orderId  = newOrder.id;
                 this.orderKey = newOrder.order_key;
+
+                this.preparePrintData( newOrder, updatedOrderData );
             } catch( error ) {
                 $contentWrap.unblock();
                 alert( error.responseJSON.message );
@@ -876,19 +879,39 @@ export default {
         },
 
         handleOrderCompletion() {
+            if ( ! this.paymentProcessed ) {
+                return;
+            }
+
+            let orderData    = {};
+            let orderNote    = {};
             let $contentWrap = jQuery('.wepos-checkout-wrapper');
 
-            if ( this.paymentProcessed ) {
-                this.$router.push({
-                    name: 'Home',
-                    query: {
-                        order_key: this.orderKey,
-                        payment: 'success'
-                    }
-                });
+            if ( this.orderId ) {
+                orderData = {
+                    status: 'completed',
+                    meta_data: [
+                        {
+                            key: '_created_via',
+                            value: 'wepos'
+                        }
+                    ]
+                }
 
-                $contentWrap.unblock();
+                orderNote.note = this.__( 'Payment collected via Stripe Terminal. Terminal payment ID: ', 'wepos' ) + this.stripeTerminalPaymentId;
             }
+            wepos.api.put( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId, orderData );
+            wepos.api.post( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId + '/notes', orderNote );
+
+            this.$router.push({
+                name: 'Home',
+                query: {
+                    order_key: this.orderKey,
+                    payment: 'success'
+                }
+            });
+
+            $contentWrap.unblock();
         },
 
         initPayment() {

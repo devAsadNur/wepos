@@ -11,19 +11,24 @@ export default {
         },
         canProcessPayment: false,
         paymentProcessed: false,
+        stripeTerminalPaymentId: {}
     },
     getters: {
         getCanProcessPayment: state => {
             return state.canProcessPayment;
         },
 
+        orderdata: state => {
+            return state.orderdata;
+        },
+
         paymentProcessed: state => {
             return state.paymentProcessed;
         },
 
-        orderdata: state => {
-            return state.orderdata;
-        },
+        stripeTerminalPaymentId: state => {
+            return state.stripeTerminalPaymentId;
+        }
     },
     mutations: {
         setOrderData( state, orderdata ) {
@@ -83,6 +88,10 @@ export default {
 
         setPaymentProcessed( state, paymentProcessed ) {
             state.paymentProcessed = paymentProcessed;
+        },
+
+        setStripeTerminalPaymentId( state, stripeTerminalPaymentId ) {
+            state.stripeTerminalPaymentId = stripeTerminalPaymentId;
         }
     },
     actions: {
@@ -116,6 +125,10 @@ export default {
 
         setPaymentProcessed( context, paymentProcessed ) {
             context.commit( 'setPaymentProcessed', paymentProcessed );
+        },
+
+        setStripeTerminalPaymentId( context, stripeTerminalPaymentId ) {
+            context.commit( 'setStripeTerminalPaymentId', stripeTerminalPaymentId );
         }
     }
 };
