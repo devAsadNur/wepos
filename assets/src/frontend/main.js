@@ -1,9 +1,9 @@
 // import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
-import store from '@/utils/store/'
 
-let Vue = wepos_get_lib('Vue');
+const store = wepos_get_lib('Store');
+const Vue   = wepos_get_lib('Vue');
 
 Vue.config.productionTip = false
 

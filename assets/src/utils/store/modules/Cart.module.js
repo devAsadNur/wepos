@@ -11,6 +11,10 @@ export default {
         }
     },
     getters: {
+        cartdata: state => {
+            return state.cartdata;
+        },
+
         getSubtotal( state ) {
             var subtotal = 0;
             weLo_.forEach( state.cartdata.line_items, function( item, key ) {

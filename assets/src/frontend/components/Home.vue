@@ -403,7 +403,7 @@
             </template>
         </modal>
 
-        <modal v-if="showModal" @open="focusCashInput()" @close="backToSale()" @enterpressed="processPayment()" width="98%" height="95vh">
+        <modal v-if="showModal" @open="focusCashInput()" @close="backToSale()" @enterpressed="processOrder()" width="98%" height="95vh">
             <template slot="body">
                 <div class="wepos-checkout-wrapper">
                     <div class="left-content">
@@ -529,7 +529,7 @@
 
                         <div class="footer wepos-clearfix">
                             <a href="#" class="back-btn wepos-left" @click.prevent="backToSale()">{{ __( 'Back to Sale', 'wepos' ) }}</a>
-                            <button class="process-checkout-btn wepos-right" @click.prevent="processPayment" :disabled="! $store.getters['Order/getCanProcessPayment']">{{ __( 'Process Payment', 'wepos' ) }}</button>
+                            <button class="process-checkout-btn wepos-right" @click.prevent="processOrder" :disabled="! $store.getters['Order/getCanProcessPayment']">{{ __( 'Process Payment', 'wepos' ) }}</button>
                         </div>
                     </div>
                 </div>
@@ -560,6 +560,7 @@ import MugenScroll from 'vue-mugen-scroll';
 import PrintReceipt from './PrintReceipt.vue';
 import PrintReceiptHtml from './PrintReceiptHtml.vue';
 import CustomerNote from './CustomerNote.vue';
+import { mapGetters } from "vuex";
 
 let Modal = wepos_get_lib( 'Modal' );
 
@@ -609,6 +610,7 @@ export default {
                 },
             } ),
             feeData: {},
+            orderKey: '',
             createprintreceipt: false,
             selectedCategory: '',
             selectedGateway: '',
@@ -622,17 +624,17 @@ export default {
         }
     },
     computed: {
-        cartdata() {
-            return this.$store.state.Cart.cartdata;
-        },
-        orderdata() {
-            return this.$store.state.Order.orderdata;
-        },
+        ...mapGetters( 'Cart', [
+            'cartdata'
+        ] ),
+        ...mapGetters( 'Order', [
+            'orderdata', 'paymentProcessed'
+        ] ),
         hotkeys() {
             return {
                 'f3': this.toggleProductView,
                 'f9': this.initPayment,
-                'f10': this.processPayment,
+                'f10': this.processOrder,
                 'f8': this.createNewSale,
                 'shift+f8': this.emptyCart,
                 'esc': this.backToSale,
@@ -715,6 +717,10 @@ export default {
         cashAmount( newdata, olddata ) {
             this.ableToProcess();
         },
+
+        paymentProcessed( newValue, oldValue ) {
+            this.handleOrderCompletion();
+        },
     },
 
     methods: {
@@ -777,89 +783,112 @@ export default {
                     && canProcess;
             }
 
-            console.log( canProcess );
-
             this.$store.dispatch( 'Order/setCanProcessPaymentAction', canProcess );
         },
-        async processPayment(e) {
+
+        async processOrder(e) {
             if ( ! this.$store.getters['Order/getCanProcessPayment'] ) {
                 return;
             }
 
-            if ( 'wepos_stripe_terminal' === this.orderdata.payment_method ) {
-                const cartTotal = this.$store.getters['Cart/getTotal']
-                wepos.hooks.doAction( 'wepos_stripe_terminal_pay', cartTotal );
+            let updatedOrderData = this.updateOrderData();
+            let $contentWrap     = jQuery('.wepos-checkout-wrapper');
+            
+            $contentWrap.block( { message: null, overlayCSS: { background: '#fff url(' + wepos.ajax_loader + ') no-repeat center', opacity: 0.4 } } );
+
+            let newOrder;
+            try {
+                newOrder = await this.placeOrder( updatedOrderData );
+                this.preparePrintData( newOrder, updatedOrderData );
+                this.orderKey = newOrder.order_key;
+            } catch( error ) {
+                $contentWrap.unblock();
+                alert( error.responseJSON.message );
             }
 
-            var self = this,
-                gateway = weLo_.find( this.availableGateways, { 'id' : this.orderdata.payment_method } ),
-                orderdata = wepos.hooks.applyFilters( 'wepos_order_form_data', {
-                    billing: this.orderdata.billing,
-                    shipping: this.orderdata.shipping,
-                    line_items: this.cartdata.line_items,
-                    fee_lines: this.cartdata.fee_lines,
-                    customer_id: this.orderdata.customer_id,
-                    customer_note: this.orderdata.customer_note,
-                    payment_method: this.orderdata.payment_method,
-                    payment_method_title: this.orderdata.payment_method_title,
-                    meta_data: [
-                        {
-                            key: '_wepos_is_pos_order',
-                            value: true
-                        },
-                        {
-                            key: '_wepos_cash_tendered_amount',
-                            value: self.cashAmount.toString()
-                        },
-                        {
-                            key: '_wepos_cash_change_amount',
-                            value: self.changeAmount.toString()
-                        }
-                    ]
-                }, this.orderdata, this.cartdata );
+            if ( newOrder.id && 'wepos_stripe_terminal' === this.orderdata.payment_method ) {
+                wepos.hooks.doAction( 'wepos_stripe_terminal_pay', this.$store.getters['Cart/getTotal'] );
+            }
 
-            var $contentWrap = jQuery('.wepos-checkout-wrapper');
-            $contentWrap.block({ message: null, overlayCSS: { background: '#fff url(' + wepos.ajax_loader + ') no-repeat center', opacity: 0.4 } });
+            let paymentStatus;
+            if ( newOrder.id && 'wepos_stripe_terminal' !== newOrder.payment_method ) {
+                try {
+                    paymentStatus = await this.processPayment( newOrder );
 
-            wepos.api.post( wepos.rest.root + wepos.rest.wcversion + '/orders', orderdata )
-            .done( response => {
-                wepos.api.post( wepos.rest.root + wepos.rest.posversion + '/payment/process', response )
-                .done( data => {
-                    if ( data.result == 'success' ) {
-                        this.$router.push({
-                            name: 'Home',
-                            query: {
-                                order_key: response.order_key,
-                                payment: 'success'
-                            }
-                        });
-                        this.printdata = wepos.hooks.applyFilters( 'wepos_after_payment_print_data', {
-                            line_items: this.cartdata.line_items,
-                            fee_lines: this.cartdata.fee_lines,
-                            subtotal: this.$store.getters['Cart/getSubtotal'],
-                            taxtotal: this.$store.getters['Cart/getTotalTax'],
-                            ordertotal: this.$store.getters['Cart/getTotal'],
-                            gateway: {
-                                id: response.payment_method,
-                                title: response.payment_method_title
-                            },
-                            order_id: response.id,
-                            order_date: response.date_created,
-                            cashamount: this.cashAmount.toString(),
-                            changeamount: this.changeAmount.toString()
-                        }, orderdata );
-                      $contentWrap.unblock();
-                    } else {
-                        $contentWrap.unblock();
-                    }
-                }).fail( data => {
+                } catch( error ) {
                     $contentWrap.unblock();
-                    alert( data.responseJSON.message );
+                    alert( error.responseJSON.message );
+                }
+            }
+
+            if ( 'success' === paymentStatus?.result ) {
+                this.$store.dispatch( 'Order/setPaymentProcessed', true );
+            }
+        },
+
+        updateOrderData() {
+            return wepos.hooks.applyFilters( 'wepos_order_form_data', {
+                billing: this.orderdata.billing,
+                shipping: this.orderdata.shipping,
+                line_items: this.cartdata.line_items,
+                fee_lines: this.cartdata.fee_lines,
+                customer_id: this.orderdata.customer_id,
+                customer_note: this.orderdata.customer_note,
+                payment_method: this.orderdata.payment_method,
+                payment_method_title: this.orderdata.payment_method_title,
+                meta_data: [
+                    {
+                        key: '_wepos_is_pos_order',
+                        value: true
+                    },
+                    {
+                        key: '_wepos_cash_tendered_amount',
+                        value: this.cashAmount.toString()
+                    },
+                    {
+                        key: '_wepos_cash_change_amount',
+                        value: this.changeAmount.toString()
+                    }
+                ]
+            }, this.orderdata, this.cartdata );
+        },
+
+        async placeOrder( updatedOrderData ) {
+            return await wepos.api.post( wepos.rest.root + wepos.rest.wcversion + '/orders', updatedOrderData );
+        },
+
+        preparePrintData( order, orderData ) {
+            this.printdata = wepos.hooks.applyFilters( 'wepos_after_payment_print_data', {
+                line_items: this.cartdata.line_items,
+                fee_lines: this.cartdata.fee_lines,
+                subtotal: this.$store.getters['Cart/getSubtotal'],
+                taxtotal: this.$store.getters['Cart/getTotalTax'],
+                ordertotal: this.$store.getters['Cart/getTotal'],
+                gateway: {
+                    id: order.payment_method,
+                    title: order.payment_method_title
+                },
+                order_id: order.id,
+                order_date: order.date_created,
+                cashamount: this.cashAmount.toString(),
+                changeamount: this.changeAmount.toString()
+            }, orderData );
+        },
+
+        handleOrderCompletion() {
+            let $contentWrap = jQuery('.wepos-checkout-wrapper');
+
+            if ( this.paymentProcessed ) {
+                this.$router.push({
+                    name: 'Home',
+                    query: {
+                        order_key: this.orderKey,
+                        payment: 'success'
+                    }
                 });
-            }).fail( response => {
+
                 $contentWrap.unblock();
-                alert( response.responseJSON.message );
-            } );
+            }
         },
 
         initPayment() {

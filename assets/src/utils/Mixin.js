@@ -154,6 +154,10 @@ export default {
 
             return product.stock_quantity > productCartQty;
         },
+
+        async processPayment( orderData ) {
+            return await wepos.api.post( wepos.rest.root + wepos.rest.posversion + '/payment/process', orderData );
+        },
     },
 
     computed: {

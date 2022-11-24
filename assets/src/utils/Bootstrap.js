@@ -1,16 +1,16 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Vuex from 'vuex'
 import API_Helper from '@/utils/Api'
 import _ from '@/utils/lodash'
 import Mixin from './Mixin'
 import Popover  from 'vue-js-popover'
 import TextEditor from "admin/components/TextEditor.vue"
-import { VTooltip, VPopover, VClosePopover } from 'v-tooltip'
 import VueHotkey from 'v-hotkey'
 import Multiselect from 'vue-multiselect'
 import Modal from './components/Modal.vue'
 import Switches from './components/Switches.vue'
+import { getStore } from './store'
+import { VTooltip, VPopover, VClosePopover } from 'v-tooltip'
 import "vue-multiselect/dist/vue-multiselect.min.css"
 
 import dayjs from 'dayjs';
@@ -78,11 +78,11 @@ window.wepos._                  = _;
 window.wepos.api                = new API_Helper();
 window.wepos.libs['Vue']        = Vue;
 window.wepos.libs['Router']     = Router;
-window.wepos.libs['Vuex']       = Vuex;
 window.wepos.libs['TextEditor'] = TextEditor;
 window.wepos.libs['EventBus']   = EventBus;
 window.wepos.libs['Modal']      = Modal;
 window.wepos.libs['Switches']   = Switches;
+window.wepos.libs['Store']      = getStore( Vue );
 
 // WordPress Hooks
 import { createHooks } from '@wordpress/hooks';

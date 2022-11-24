@@ -1,9 +1,9 @@
 import App from './App.vue'
 import router from './router'
-import store from '@/utils/store/'
 import menuFix from './utils/admin-menu-fix'
 
-let Vue = wepos_get_lib('Vue');
+const Vue   = wepos_get_lib('Vue');
+const store = wepos_get_lib('Store');
 
 Vue.config.productionTip = false
 

@@ -10,10 +10,19 @@ export default {
             payment_method_title: '',
         },
         canProcessPayment: false,
+        paymentProcessed: false,
     },
     getters: {
         getCanProcessPayment: state => {
             return state.canProcessPayment;
+        },
+
+        paymentProcessed: state => {
+            return state.paymentProcessed;
+        },
+
+        orderdata: state => {
+            return state.orderdata;
         },
     },
     mutations: {
@@ -71,6 +80,10 @@ export default {
         setCanProcessPayment( state, canProcessPayment ) {
             state.canProcessPayment = canProcessPayment;
         },
+
+        setPaymentProcessed( state, paymentProcessed ) {
+            state.paymentProcessed = paymentProcessed;
+        }
     },
     actions: {
         setOrderDataAction( context, orderdata ) {
@@ -100,5 +113,9 @@ export default {
         setCanProcessPaymentAction( context, canProcessPayment ) {
             context.commit( 'setCanProcessPayment', canProcessPayment );
         },
+
+        setPaymentProcessed( context, paymentProcessed ) {
+            context.commit( 'setPaymentProcessed', paymentProcessed );
+        }
     }
 };

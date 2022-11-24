@@ -1,14 +1,14 @@
-let Vue = wepos_get_lib('Vue');
-let Vuex = wepos_get_lib('Vuex');
-
-Vue.use(Vuex);
-
+import Vuex from 'vuex';
 import Cart from './modules/Cart.module';
 import Order from './modules/Order.module';
 
-export default new Vuex.Store({
-    modules: {
-        Cart,
-        Order
-    }
-});
+export function getStore( Vue ) {
+    Vue.use( Vuex );
+
+    return new Vuex.Store( {
+        modules: {
+            Cart,
+            Order
+        }
+    } );
+}
