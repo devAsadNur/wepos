@@ -880,16 +880,18 @@ export default {
             }, orderData );
         },
 
-        handleOrderCompletion( newValue ) {
+        async handleOrderCompletion( newValue ) {
             if ( ! newValue || ! this.orderId ) {
                 return;
             }
 
-            const orderCompletionData = this.getOrderCompletionData();
-            const orderCompletionNote = this.getOrderCompletionNote();
+            if ( 'wepos_stripe_terminal' === this.orderdata.payment_method ) {
+                const orderCompletionData = this.getTerminalOrderCompletionData();
+                const orderCompletionNote = this.getTerminalOrderCompletionNote();
 
-            wepos.api.put( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId, orderCompletionData );
-            wepos.api.post( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId + '/notes', orderCompletionNote );
+                await wepos.api.put( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId, orderCompletionData );
+                await wepos.api.post( wepos.rest.root + wepos.rest.wcversion + '/orders/' + this.orderId + '/notes', orderCompletionNote );
+            }
 
             this.$router.push({
                 name: 'Home',
@@ -903,7 +905,7 @@ export default {
             jQuery('.wepos-checkout-wrapper').unblock();
         },
 
-        getOrderCompletionData() {
+        getTerminalOrderCompletionData() {
             return {
                 status: 'completed',
                 meta_data: [
@@ -915,17 +917,11 @@ export default {
                         key: '_wepos_stripe_terminal_payment_id',
                         value: this.stripeTerminalPaymentId
                     },
-                    {
-                        key: '_wepos_cash_tendered_amount',
-                    },
-                    {
-                        key: '_wepos_cash_change_amount',
-                    }
                 ]
             }
         },
 
-        getOrderCompletionNote() {
+        getTerminalOrderCompletionNote() {
             return {
                 note: this.__( 'Payment collected via Stripe Terminal. Terminal payment ID: ', 'wepos' ) + this.stripeTerminalPaymentId
             }
