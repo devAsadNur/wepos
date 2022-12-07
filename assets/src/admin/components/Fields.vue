@@ -30,6 +30,26 @@
             </td>
         </tr>
 
+        <tr :class="id" v-if="'password' === fieldData.type">
+            <th scope="row">
+                <label :for="sectionId + '[' + fieldData.name + ']'">{{ fieldData.label }}</label>
+            </th>
+            <td>
+                <input type="password" class="regular-text" :id="sectionId + '[' + fieldData.name + ']'" :name="sectionId + '[' + fieldData.name + ']'" v-model="fieldValue[fieldData.name]">
+                <p class="description" v-html="fieldData.desc"></p>
+            </td>
+        </tr>
+
+        <tr :class="id" v-if="'secret' === fieldData.type">
+            <th scope="row">
+                <label :for="sectionId + '[' + fieldData.name + ']'">{{ fieldData.label }}</label>
+            </th>
+            <td class="input-table-column">
+                <textarea type="textarea" :rows="fieldData.rows" :cols="fieldData.cols" class="regular-text secret-input blurry-input" :id="sectionId + '[' + fieldData.name + ']'" :name="sectionId + '[' + fieldData.name + ']'" v-model="fieldValue[fieldData.name]" @focus="removeBlurryEffect" @blur="addBlurryEffect"></textarea>
+                <p class="description" v-html="fieldData.desc"></p>
+            </td>
+        </tr>
+
         <tr :class="id" v-if="'checkbox' == fieldData.type">
             <th scope="row">
                 <label :for="sectionId + '[' + fieldData.name + ']'">{{ fieldData.label }}</label>
@@ -221,6 +241,14 @@
 
             removeItem( optionVal, name ) {
                 this.fieldValue[name].splice( optionVal, 1 );
+            },
+
+            addBlurryEffect( evt ) {
+                evt.target.closest('.secret-input').classList.add('blurry-input');
+            },
+
+            removeBlurryEffect( evt ) {
+                evt.target.closest('.secret-input').classList.remove('blurry-input');
             }
         }
 
@@ -228,6 +256,15 @@
 </script>
 
 <style lang="less">
+
+    .secret-input {
+        min-height: 70px !important;
+    }
+
+    .secret-input.blurry-input {
+        color: transparent;
+        text-shadow: 0 0 4px #333;
+    }
 
     ul.dokan-settings-repeatable-list {
         list-style-type: disc;
