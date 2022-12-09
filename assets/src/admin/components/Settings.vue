@@ -237,6 +237,10 @@
             &.dashicons-networking {
                 color: #1abc9c;
             }
+
+            &.dashicons-money-alt {
+                color: #635bff;
+            }
         }
 
         h2.nav-tab-wrapper {
