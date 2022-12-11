@@ -629,7 +629,7 @@ export default {
             'cartdata'
         ] ),
         ...mapGetters( 'Order', [
-            'orderdata', 'paymentProcessed', 'stripeTerminalPaymentId'
+            'orderdata', 'paymentProcessed', 'stripeTerminalPaymentResult', 'paymentFailed'
         ] ),
         hotkeys() {
             return {
@@ -722,6 +722,10 @@ export default {
         paymentProcessed( newValue, oldValue ) {
             this.handleOrderCompletion( newValue );
         },
+
+        paymentFailed( newValue, oldValue ) {
+            this.handlePaymentFailure( newValue );
+        }
     },
 
     methods: {
@@ -880,6 +884,14 @@ export default {
             }, orderData );
         },
 
+        handlePaymentFailure( newValue ) {
+            if ( ! newValue ) {
+                return;
+            }
+
+            jQuery('.wepos-checkout-wrapper').unblock();
+        },
+
         async handleOrderCompletion( newValue ) {
             if ( ! newValue || ! this.orderId ) {
                 return;
@@ -915,7 +927,7 @@ export default {
                     },
                     {
                         key: '_wepos_stripe_terminal_payment_id',
-                        value: this.stripeTerminalPaymentId
+                        value: this.stripeTerminalPaymentResult.id
                     },
                 ]
             }
@@ -923,7 +935,7 @@ export default {
 
         getTerminalOrderCompletionNote() {
             return {
-                note: this.__( 'Payment collected via Stripe Terminal. Terminal payment ID: ', 'wepos' ) + this.stripeTerminalPaymentId
+                note: this.__( 'Payment collected via Stripe Terminal. Terminal payment ID: ', 'wepos' ) + this.stripeTerminalPaymentResult.id
             }
         },
 

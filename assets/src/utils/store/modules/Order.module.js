@@ -11,7 +11,8 @@ export default {
         },
         canProcessPayment: false,
         paymentProcessed: false,
-        stripeTerminalPaymentId: {}
+        stripeTerminalPaymentResult: {},
+        paymentFailed: false
     },
     getters: {
         getCanProcessPayment: state => {
@@ -26,8 +27,12 @@ export default {
             return state.paymentProcessed;
         },
 
-        stripeTerminalPaymentId: state => {
-            return state.stripeTerminalPaymentId;
+        stripeTerminalPaymentResult: state => {
+            return state.stripeTerminalPaymentResult;
+        },
+
+        paymentFailed: state => {
+            return state.paymentFailed;
         }
     },
     mutations: {
@@ -90,8 +95,12 @@ export default {
             state.paymentProcessed = paymentProcessed;
         },
 
-        setStripeTerminalPaymentId( state, stripeTerminalPaymentId ) {
-            state.stripeTerminalPaymentId = stripeTerminalPaymentId;
+        setStripeTerminalPaymentResult( state, stripeTerminalPaymentResult ) {
+            state.stripeTerminalPaymentResult = stripeTerminalPaymentResult;
+        },
+
+        setPaymentFailed( state, paymentFailed ) {
+            state.paymentFailed = paymentFailed;
         }
     },
     actions: {
@@ -127,8 +136,12 @@ export default {
             context.commit( 'setPaymentProcessed', paymentProcessed );
         },
 
-        setStripeTerminalPaymentId( context, stripeTerminalPaymentId ) {
-            context.commit( 'setStripeTerminalPaymentId', stripeTerminalPaymentId );
+        setStripeTerminalPaymentResult( context, stripeTerminalPaymentResult ) {
+            context.commit( 'setStripeTerminalPaymentResult', stripeTerminalPaymentResult );
+        },
+
+        setPaymentFailed( context, paymentFailed ) {
+            context.commit( 'setPaymentFailed', paymentFailed );
         }
     }
 };
